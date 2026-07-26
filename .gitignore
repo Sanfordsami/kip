@@ -1,0 +1,17 @@
+# Ignore a single file
+secret.txt
+config.local.js
+
+# Ignore an entire folder
+node_modules/
+dist/
+build/
+
+# Ignore all files with a specific extension
+*.log
+*.tmp
+*.DS_Store
+
+# Ignore files with a specific name anywhere in the project
+.env.local
+.DS_Store
