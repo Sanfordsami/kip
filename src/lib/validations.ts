@@ -31,3 +31,20 @@ export const kpiTaskSchema = z.object({
 });
 
 export type KpiTaskInput = z.infer<typeof kpiTaskSchema>;
+
+
+export const assignmentSchema = z.object({
+  taskId: z.string().uuid("Select a KPI task"),
+  employeeIds: z.array(z.string().uuid()).min(1, "Select at least one employee"),
+  assignedBy: z.string().uuid("Missing manager identity"),
+  dueDate: z
+    .string()
+    .refine((val) => !Number.isNaN(Date.parse(val)), "Enter a valid due date")
+    .refine((val) => new Date(val).getTime() > Date.now() - 86400000, "Due date cannot be in the past"),
+  priority: z.enum(["low", "medium", "high", "urgent"]),
+  weight: z.number().int().min(1, "Weight must be at least 1").max(100, "Weight cannot exceed 100"),
+  notes: z.string().trim().max(2000).optional().or(z.literal("")),
+  allowDuplicate: z.boolean().default(false),
+});
+
+export type AssignmentInput = z.infer<typeof assignmentSchema>;
