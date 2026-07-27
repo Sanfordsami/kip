@@ -24,7 +24,7 @@ export const kpiTaskSchema = z.object({
   title: z.string().trim().min(3, "Title must be at least 3 characters").max(200),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   weight: z
-    .number({ invalid_type_error: "Weight must be a number" })
+    .number({ error: "Weight must be a number" })
     .int("Weight must be a whole number")
     .min(1, "Weight must be at least 1")
     .max(100, "Weight cannot exceed 100"),
