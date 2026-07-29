@@ -15,3 +15,4 @@ build/
 # Ignore files with a specific name anywhere in the project
 .env.local
 .DS_Store.next/
+.next/
