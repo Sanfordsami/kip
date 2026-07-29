@@ -1,3 +1,7 @@
+
+
+import { relations } from "drizzle-orm";
+
 import {
   pgTable,
   uuid,
@@ -83,3 +87,14 @@ export const telegramLogs = pgTable("telegram_logs", {
   status: telegramLogStatusEnum("status").notNull(),
   error: text("error"),
 });
+
+export const departmentsRelations = relations(departments, ({ many }) => ({
+  employees: many(employees),
+}));
+
+export const employeesRelations = relations(employees, ({ one }) => ({
+  department: one(departments, {
+    fields: [employees.departmentId],
+    references: [departments.id],
+  }),
+}));

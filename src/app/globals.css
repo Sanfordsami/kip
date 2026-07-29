@@ -1,26 +1,352 @@
 @import "tailwindcss";
 
+/* Fonts are loaded via next/font/google in layout.tsx (inter, spaceGrotesk,
+   jetbrainsMono variables), which exposes them as --font-inter,
+   --font-space-grotesk, --font-jetbrains-mono on the <html> element. */
+
+/* ============================================================
+   AR SOLUTION — KPI MANAGEMENT SYSTEM
+   Design concept: "control room" — a dark, monitoring-console
+   feel with a slow radar-style scanline as the signature motif.
+   Status colors (signal-*) are semantic and drive KPI badges.
+   ============================================================ */
+
+@theme {
+  /* Brand — kept the same variable names as before (brand-50…900)
+     so any existing bg-brand-500 / text-brand-600 classes in your
+     components keep working. Only the hex values changed, from
+     teal to an indigo-violet that reads more "enterprise software"
+     and less "marketing site". */
+  --color-brand-50:  #eef0ff;
+  --color-brand-100: #dce0ff;
+  --color-brand-400: #7c86f2;
+  --color-brand-500: #5b63e0;
+  --color-brand-600: #4548c4;
+  --color-brand-700: #34379e;
+  --color-brand-900: #1d1e5c;
+
+  /* Structural — the console shell */
+  --color-ink:        #0b0f1e; /* page background */
+  --color-surface:    #121a2e; /* card background */
+  --color-surface-2:  #1a2340; /* elevated card / hover */
+  --color-line:       rgba(255, 255, 255, 0.07);
+  --color-muted:      #8a93b3;
+  --color-text:       #e7ebf7;
+
+  /* Signal — semantic KPI status colors, used for badges,
+     chart accents, and the scanline highlight */
+  --color-signal-good:  #34d399; /* on target */
+  --color-signal-warn:  #fbbf24; /* at risk */
+  --color-signal-bad:   #f87171; /* off target */
+  --color-signal-amber: #f5a623; /* signature sweep / highlight color */
+
+  /* Type — these var(--font-*) values come from next/font/google
+     in layout.tsx, with plain fallbacks in case a font is still loading */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-body:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--color-ink);
+  position: relative;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.font-mono-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------
+   BACKGROUND — layered: base vignette + faint grid + scanline
+   ------------------------------------------------------------ */
+
+.bg-app {
+  min-height: 100%;
+  background-color: var(--color-ink);
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(91, 99, 224, 0.22), transparent 45%),
+    radial-gradient(circle at 88% 92%, rgba(245, 166, 35, 0.10), transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(52, 211, 153, 0.06), transparent 60%);
+  background-attachment: fixed;
+  position: relative;
+}
+
+/* faint graph-paper grid, sits behind all content */
+.bg-app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--color-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 50% 20%, black, transparent 75%);
+}
+
+/* the signature radar-sweep highlight, slowly drifting down the page */
+.bg-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  height: 40vh;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(245, 166, 35, 0.05) 45%,
+    rgba(245, 166, 35, 0.09) 50%,
+    rgba(245, 166, 35, 0.05) 55%,
+    transparent
+  );
+  animation: scan-sweep 14s ease-in-out infinite;
+}
+
+@keyframes scan-sweep {
+  0%   { transform: translateY(-40vh); }
+  50%  { transform: translateY(100vh); }
+  100% { transform: translateY(-40vh); }
+}
+
+/* ------------------------------------------------------------
+   FLOATING DATA NODES — small drifting dots, used sparingly
+   behind hero / empty states. Reuses the old float keyframes
+   under clearer names.
+   ------------------------------------------------------------ */
+
+@keyframes data-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(30px, -40px) scale(1.08); }
+  66%      { transform: translate(-25px, 20px) scale(0.95); }
+}
+
+@keyframes data-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-35px, 25px) scale(1.05); }
+  66%      { transform: translate(20px, -30px) scale(0.97); }
+}
+
+.data-node {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(1px);
+  pointer-events: none;
+}
+
+.data-node-a { animation: data-drift-a 22s ease-in-out infinite; }
+.data-node-b { animation: data-drift-b 28s ease-in-out infinite; }
+
+/* ------------------------------------------------------------
+   BRAND MARK — placeholder logo badge for "AR Solution".
+   Swap the <span>AR</span> for an <img src="logo.svg"> later;
+   the ring and sizing will still apply to an image the same way.
+   ------------------------------------------------------------ */
+
+.brand-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--color-brand-400), var(--color-brand-700));
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 0 1px var(--color-line), 0 8px 20px rgba(91, 99, 224, 0.35);
+}
+
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 1rem;
+  border: 1px solid rgba(124, 134, 242, 0.5);
+  animation: pulse-ring 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.92); opacity: 0.9; }
+  70%  { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.brand-name .brand-name-accent {
+  color: var(--color-signal-amber);
+}
+
+/* ------------------------------------------------------------
+   HERO VISUAL — placeholder for a dashboard screenshot or
+   illustration. Replace this block with a real <img> tag
+   (object-cover, same border-radius) once you have artwork.
+   ------------------------------------------------------------ */
+
+.hero-visual {
+  position: relative;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background:
+    linear-gradient(135deg, rgba(91, 99, 224, 0.35), rgba(245, 166, 35, 0.15) 60%, rgba(52, 211, 153, 0.15)),
+    var(--color-surface);
+  border: 1px solid var(--color-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------
+   KPI CARDS — glass panels with hover lift + glow border
+   ------------------------------------------------------------ */
+
+.kpi-card {
+  position: relative;
+  z-index: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  background: var(--color-surface-2);
+  border-color: rgba(124, 134, 242, 0.4);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(124, 134, 242, 0.15);
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.kpi-value {
+  font-family: var(--font-mono);
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------
+   STATUS BADGES — semantic KPI status
+   ------------------------------------------------------------ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+}
+
+.badge::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.badge-good { color: var(--color-signal-good); background: rgba(52, 211, 153, 0.12); }
+.badge-warn { color: var(--color-signal-warn); background: rgba(251, 191, 36, 0.12); }
+.badge-bad  { color: var(--color-signal-bad);  background: rgba(248, 113, 113, 0.12); }
+
+/* ------------------------------------------------------------
+   ACCESSIBILITY
+   ------------------------------------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--color-signal-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-app::after,
+  .data-node-a,
+  .data-node-b,
+  .brand-mark::after {
+    animation: none;
+  }
+}
+/* ------------------------------------------------------------
+   DATE PICKER — override react-day-picker's default light theme
+   ------------------------------------------------------------ */
+
+.rdp-root {
+  --rdp-accent-color: var(--color-brand-500);
+  --rdp-accent-background-color: var(--color-brand-700);
+  --rdp-day_button-border-radius: 0.5rem;
+  color: var(--color-text);
+}
+
+.rdp-day_button {
+  color: var(--color-text);
+}
+
+.rdp-day_button:hover {
+  background-color: var(--color-surface-2);
+}
+
+.rdp-weekday {
+  color: var(--color-muted);
+}
+
+.rdp-selected .rdp-day_button {
+  background-color: var(--color-brand-500);
+  color: white;
+}
+
+.rdp-disabled {
+  color: var(--color-line);
+}
+
+
+/* CUSTOM CURSOR */
+body {
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2228%22%20height%3D%2228%22%20viewBox%3D%220%200%2028%2028%22%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%229%22%20fill%3D%22none%22%20stroke%3D%22%235b63e0%22%20stroke-width%3D%222%22/%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%222.5%22%20fill%3D%22%235b63e0%22/%3E%3C/svg%3E") 14 14, auto;
+}
+a, button, [role="button"], input[type="checkbox"], input[type="radio"], select, .cursor-target, label {
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2228%22%20height%3D%2228%22%20viewBox%3D%220%200%2028%2028%22%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%235b63e0%22%20stroke-width%3D%222.5%22/%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%224%22%20fill%3D%22%235b63e0%22/%3E%3C/svg%3E") 14 14, pointer;
 }

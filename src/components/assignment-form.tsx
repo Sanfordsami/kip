@@ -90,7 +90,7 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="flex max-w-2xl flex-col gap-7">
       {formError && (
         <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />

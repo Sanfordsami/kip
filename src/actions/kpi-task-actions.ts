@@ -17,7 +17,6 @@ export async function createKpiTask(
       fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
     };
   }
-
   try {
     const [row] = await db
       .insert(schema.kpiTasks)

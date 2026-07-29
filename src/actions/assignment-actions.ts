@@ -11,7 +11,10 @@ import type { ActionResult } from "./employee-actions";
 export async function createAssignments(
   input: unknown
 ): Promise<ActionResult<{ assignmentIds: string[] }>> {
+
+
   // STEP 1: Validate shape
+
   const parsed = assignmentSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -23,6 +26,7 @@ export async function createAssignments(
   const { taskId, employeeIds, assignedBy, dueDate, priority, weight, notes, allowDuplicate } = parsed.data;
 
   // STEP 2: Confirm the task exists
+  
   const task = await db.query.kpiTasks.findFirst({ where: eq(schema.kpiTasks.id, taskId) });
   if (!task) return { success: false, error: "KPI task not found" };
 

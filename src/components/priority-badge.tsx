@@ -1,12 +1,10 @@
-import { cn } from "@/lib/utils";
-
 type Priority = "low" | "medium" | "high" | "urgent";
 
-const PRIORITY_STYLES: Record<Priority, string> = {
-  low: "bg-slate-100 text-slate-600 border-slate-200",
-  medium: "bg-blue-50 text-blue-700 border-blue-200",
-  high: "bg-amber-50 text-amber-700 border-amber-200",
-  urgent: "bg-red-50 text-red-700 border-red-200",
+const PRIORITY_STYLES: Record<Priority, { bg: string; color: string }> = {
+  low: { bg: "rgba(138, 147, 179, 0.15)", color: "var(--color-muted)" },
+  medium: { bg: "rgba(91, 99, 224, 0.18)", color: "var(--color-brand-400)" },
+  high: { bg: "rgba(251, 191, 36, 0.15)", color: "var(--color-signal-warn)" },
+  urgent: { bg: "rgba(248, 113, 113, 0.15)", color: "var(--color-signal-bad)" },
 };
 
 const PRIORITY_LABELS: Record<Priority, string> = {
@@ -17,12 +15,11 @@ const PRIORITY_LABELS: Record<Priority, string> = {
 };
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
+  const style = PRIORITY_STYLES[priority];
   return (
     <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
-        PRIORITY_STYLES[priority]
-      )}
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+      style={{ backgroundColor: style.bg, color: style.color }}
     >
       {PRIORITY_LABELS[priority]}
     </span>
