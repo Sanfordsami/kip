@@ -98,3 +98,31 @@ export const employeesRelations = relations(employees, ({ one }) => ({
     references: [departments.id],
   }),
 }));
+export const kpiTasksRelations = relations(kpiTasks, ({ many }) => ({
+  assignments: many(taskAssignments),
+}));
+
+export const taskAssignmentsRelations = relations(taskAssignments, ({ one, many }) => ({
+  task: one(kpiTasks, {
+    fields: [taskAssignments.taskId],
+    references: [kpiTasks.id],
+  }),
+  employee: one(employees, {
+    fields: [taskAssignments.employeeId],
+    references: [employees.id],
+    relationName: "employeeAssignments",
+  }),
+  manager: one(employees, {
+    fields: [taskAssignments.assignedBy],
+    references: [employees.id],
+    relationName: "managerAssignments",
+  }),
+  telegramLogs: many(telegramLogs),
+}));
+
+export const telegramLogsRelations = relations(telegramLogs, ({ one }) => ({
+  assignment: one(taskAssignments, {
+    fields: [telegramLogs.assignmentId],
+    references: [taskAssignments.id],
+  }),
+}));
