@@ -56,3 +56,11 @@ export async function getAssignmentHistory(filters: AssignmentFilters = {}) {
       row.task.title.toLowerCase().includes(term)
   );
 }
+
+export async function getEmployeeAssignments(employeeId: string) {
+  return db.query.taskAssignments.findMany({
+    where: eq(schema.taskAssignments.employeeId, employeeId),
+    with: { task: true, manager: true },
+    orderBy: [asc(schema.taskAssignments.dueDate)],
+  });
+}
