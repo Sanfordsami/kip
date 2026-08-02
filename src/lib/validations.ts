@@ -48,3 +48,12 @@ export const assignmentSchema = z.object({
 });
 
 export type AssignmentInput = z.infer<typeof assignmentSchema>;
+export const assignmentStatusSchema = z.object({
+  assignmentId: z.string().uuid(),
+  status: z.enum(["pending", "in_progress", "completed", "rejected"]),
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});

@@ -4,7 +4,7 @@
 
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { assignmentSchema } from "@/lib/validations";
+import { assignmentSchema, assignmentStatusSchema } from "@/lib/validations";
 import { buildAssignmentMessage, sendTelegramMessage } from "@/lib/telegram";
 import type { ActionResult } from "./employee-actions";
 
@@ -108,4 +108,37 @@ export async function createAssignments(
   }
 
   return { success: true, data: { assignmentIds: inserted.map((a) => a.id) } };
+}
+export async function updateAssignmentStatus(input: unknown): Promise<ActionResult> {
+  const parsed = assignmentStatusSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Validation failed",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const { assignmentId, status } = parsed.data;
+
+  const existing = await db.query.taskAssignments.findFirst({
+    where: eq(schema.taskAssignments.id, assignmentId),
+  });
+
+  if (!existing) {
+    return { success: false, error: "Assignment not found" };
+  }
+
+  try {
+    await db
+      .update(schema.taskAssignments)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(schema.taskAssignments.id, assignmentId));
+
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error("updateAssignmentStatus failed:", err);
+    return { success: false, error: "Database transaction failed while updating status" };
+  }
 }

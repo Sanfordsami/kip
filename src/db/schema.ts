@@ -16,6 +16,7 @@ import {
 // ---------- Enums (fixed sets of allowed values) ----------
 
 export const employeeStatusEnum = pgEnum("employee_status", ["active", "inactive"]);
+export const employeeRoleEnum = pgEnum("employee_role", ["manager", "employee"]);
 export const priorityEnum = pgEnum("priority", ["low", "medium", "high", "urgent"]);
 export const assignmentStatusEnum = pgEnum("assignment_status", [
   "pending",
@@ -43,6 +44,8 @@ export const employees = pgTable("employees", {
   position: varchar("position", { length: 120 }).notNull(),
   telegramChatId: varchar("telegram_chat_id", { length: 64 }),
   status: employeeStatusEnum("status").notNull().default("active"),
+  role: employeeRoleEnum("role").notNull().default("employee"),
+  passwordHash: varchar("password_hash", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
