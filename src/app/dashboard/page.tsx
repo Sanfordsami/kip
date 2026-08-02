@@ -1,25 +1,25 @@
-
-
-import { eq, ne } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/session";
 import { getEmployeeAssignments } from "@/actions/query-actions";
 import { EmployeeDashboardClient } from "@/components/employee-dashboard-client";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { db, schema } from "@/db";
+import { eq } from "drizzle-orm";
 
-export default async function EmployeeDashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ employeeId?: string }>;
-}) {
-  const { employeeId } = await searchParams;
+export default async function EmployeeDashboardPage() {
+  const session = await getSession();
 
-  const employee = employeeId
-    ? await db.query.employees.findFirst({ where: eq(schema.employees.id, employeeId) })
-    : await db.query.employees.findFirst({ where: ne(schema.employees.position, "Manager") });
+  if (!session) {
+    redirect("/login");
+  }
+
+  const employee = await db.query.employees.findFirst({
+    where: eq(schema.employees.id, session.employeeId),
+  });
 
   if (!employee) {
-    return <p className="p-6" style={{ color: "var(--color-signal-bad)" }}>No employee found.</p>;
+    redirect("/login");
   }
 
   const rows = await getEmployeeAssignments(employee.id);
