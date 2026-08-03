@@ -3,6 +3,7 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db, schema } from "@/db";
 import { assignmentSchema, assignmentStatusSchema } from "@/lib/validations";
 import { buildAssignmentMessage, sendTelegramMessage } from "@/lib/telegram";
@@ -106,6 +107,9 @@ export async function createAssignments(
       error: result.ok ? null : result.error,
     });
   }
+
+  revalidatePath("/assignments");
+  revalidatePath("/dashboard");
 
   return { success: true, data: { assignmentIds: inserted.map((a) => a.id) } };
 }

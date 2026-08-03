@@ -79,13 +79,6 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
 
       setConfirmOpen(false);
       setSuccessMessage(`Assigned to ${employeeIds.length} employee(s). Telegram notifications sent.`);
-      setTaskId(undefined);
-      setEmployeeIds([]);
-      setPriority("medium");
-      setDueDate(undefined);
-      setWeight("");
-      setNotes("");
-      setAllowDuplicate(false);
     });
   }
 
