@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getActiveEmployees } from "@/actions/query-actions";
 import { getKpiTasks } from "@/actions/kpi-task-actions";
 import { getSession } from "@/lib/session";
-import { db, schema } from "@/db";
-import { eq } from "drizzle-orm";
+import { supabase } from "@/lib/supabase";
 
 export default async function NewAssignmentPage() {
   const session = await getSession();
@@ -17,9 +16,11 @@ export default async function NewAssignmentPage() {
     redirect("/login");
   }
 
-  const manager = await db.query.employees.findFirst({
-    where: eq(schema.employees.id, session.employeeId),
-  });
+  const { data: manager } = await supabase
+    .from("employees")
+    .select("id, full_name")
+    .eq("id", session.employeeId)
+    .maybeSingle();
 
   if (!manager) {
     redirect("/login");

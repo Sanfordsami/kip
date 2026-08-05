@@ -1,8 +1,8 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
-import { db, schema } from "@/db";
+import { supabase } from "@/lib/supabase";
 import { employeeSchema } from "@/lib/validations";
 
 export type ActionResult<T = undefined> =
@@ -10,7 +10,6 @@ export type ActionResult<T = undefined> =
   | { success: false; error: string; fieldErrors?: Record<string, string[]> };
 
 export async function createEmployee(input: unknown): Promise<ActionResult<{ id: string }>> {
-  // 1. Validate the incoming data against our Zod schema
   const parsed = employeeSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -21,33 +20,67 @@ export async function createEmployee(input: unknown): Promise<ActionResult<{ id:
     };
   }
 
-  // 2. Business rule: no duplicate emails
-  const existing = await db.query.employees.findFirst({
-    where: eq(schema.employees.email, parsed.data.email),
-  });
+  const { data: existing } = await supabase
+    .from("employees")
+    .select("id")
+    .eq("email", parsed.data.email)
+    .maybeSingle();
 
   if (existing) {
     return { success: false, error: "An employee with this email already exists" };
   }
 
-  // 3. Insert the employee
-  try {
-    const [row] = await db
-      .insert(schema.employees)
-      .values({
-        fullName: parsed.data.fullName,
-        email: parsed.data.email,
-        departmentId: parsed.data.departmentId,
-        position: parsed.data.position,
-        telegramChatId: parsed.data.telegramChatId || null,
-        status: parsed.data.status,
-      })
-      .returning();
+  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
 
-    revalidatePath("/assignments/new");
-    return { success: true, data: { id: row.id } };
-  } catch (err) {
-    console.error("createEmployee failed:", err);
+  const { data: row, error } = await supabase
+    .from("employees")
+    .insert({
+      full_name: parsed.data.fullName,
+      email: parsed.data.email,
+      department_id: parsed.data.departmentId,
+      position: parsed.data.position,
+      telegram_chat_id: parsed.data.telegramChatId || null,
+      status: parsed.data.status,
+      password_hash: passwordHash,
+      role: "employee",
+    })
+    .select("id")
+    .single();
+
+  if (error || !row) {
+    console.error("createEmployee failed:", error);
     return { success: false, error: "Database transaction failed while creating employee" };
   }
+
+  revalidatePath("/assignments/new");
+  revalidatePath("/employees/new");
+  return { success: true, data: { id: row.id } };
+}
+
+export async function setEmployeeStatus(
+  employeeId: string,
+  status: "active" | "inactive"
+): Promise<ActionResult> {
+  const { data: existing } = await supabase
+    .from("employees")
+    .select("id")
+    .eq("id", employeeId)
+    .maybeSingle();
+
+  if (!existing) {
+    return { success: false, error: "Employee not found" };
+  }
+
+  const { error } = await supabase
+    .from("employees")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", employeeId);
+
+  if (error) {
+    console.error("setEmployeeStatus failed:", error);
+    return { success: false, error: "Database transaction failed while updating employee status" };
+  }
+
+  revalidatePath("/assignments/new");
+  return { success: true, data: undefined };
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { db, schema } from "@/db";
+import { supabase } from "@/lib/supabase";
 import { kpiTaskSchema } from "@/lib/validations";
 import type { ActionResult } from "./employee-actions";
 
@@ -17,26 +17,43 @@ export async function createKpiTask(
       fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
     };
   }
-  try {
-    const [row] = await db
-      .insert(schema.kpiTasks)
-      .values({
-        title: parsed.data.title,
-        description: parsed.data.description || null,
-        weight: parsed.data.weight,
-        createdBy,
-      })
-      .returning();
 
-    return { success: true, data: { id: row.id } };
-  } catch (err) {
-    console.error("createKpiTask failed:", err);
+  const { data: row, error } = await supabase
+    .from("kpi_tasks")
+    .insert({
+      title: parsed.data.title,
+      description: parsed.data.description || null,
+      weight: parsed.data.weight,
+      created_by: createdBy,
+    })
+    .select("id")
+    .single();
+
+  if (error || !row) {
+    console.error("createKpiTask failed:", error);
     return { success: false, error: "Database transaction failed while creating KPI task" };
   }
+
+  return { success: true, data: { id: row.id } };
 }
 
 export async function getKpiTasks() {
-  return db.query.kpiTasks.findMany({
-    orderBy: (fields, { desc }) => desc(fields.createdAt),
-  });
+  const { data, error } = await supabase
+    .from("kpi_tasks")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getKpiTasks failed:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    weight: row.weight,
+    createdBy: row.created_by,
+    createdAt: new Date(row.created_at),
+  }));
 }

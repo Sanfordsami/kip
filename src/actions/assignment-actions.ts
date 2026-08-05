@@ -1,10 +1,7 @@
-
-
 "use server";
 
-import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db, schema } from "@/db";
+import { supabase } from "@/lib/supabase";
 import { assignmentSchema, assignmentStatusSchema } from "@/lib/validations";
 import { buildAssignmentMessage, sendTelegramMessage } from "@/lib/telegram";
 import type { ActionResult } from "./employee-actions";
@@ -12,10 +9,6 @@ import type { ActionResult } from "./employee-actions";
 export async function createAssignments(
   input: unknown
 ): Promise<ActionResult<{ assignmentIds: string[] }>> {
-
-
-  // STEP 1: Validate shape
-
   const parsed = assignmentSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -26,82 +19,75 @@ export async function createAssignments(
   }
   const { taskId, employeeIds, assignedBy, dueDate, priority, weight, notes, allowDuplicate } = parsed.data;
 
-  // STEP 2: Confirm the task exists
-  
-  const task = await db.query.kpiTasks.findFirst({ where: eq(schema.kpiTasks.id, taskId) });
+  const { data: task } = await supabase.from("kpi_tasks").select("*").eq("id", taskId).maybeSingle();
   if (!task) return { success: false, error: "KPI task not found" };
 
-  // Confirm the manager exists
-  const manager = await db.query.employees.findFirst({ where: eq(schema.employees.id, assignedBy) });
+  const { data: manager } = await supabase.from("employees").select("*").eq("id", assignedBy).maybeSingle();
   if (!manager) return { success: false, error: "Assigning manager could not be identified" };
 
-  // STEP 3: Confirm employees exist and are active
-  const employeesToAssign = await db.query.employees.findMany({
-    where: (fields, { inArray }) => inArray(fields.id, employeeIds),
-  });
-  const foundIds = new Set(employeesToAssign.map((e) => e.id));
-  if (employeeIds.some((id) => !foundIds.has(id))) {
+  const { data: employeesToAssign } = await supabase.from("employees").select("*").in("id", employeeIds);
+  if (!employeesToAssign || employeesToAssign.length !== employeeIds.length) {
     return { success: false, error: "One or more employees could not be found" };
   }
+
   const inactive = employeesToAssign.filter((e) => e.status !== "active");
   if (inactive.length > 0) {
-    return { success: false, error: `Cannot assign to inactive employees: ${inactive.map((e) => e.fullName).join(", ")}` };
+    return { success: false, error: `Cannot assign to inactive employees: ${inactive.map((e) => e.full_name).join(", ")}` };
   }
 
-  // STEP 4: Duplicate check
   if (!allowDuplicate) {
-    const existing = await db.query.taskAssignments.findMany({
-      where: (fields, { inArray, and }) => and(eq(fields.taskId, taskId), inArray(fields.employeeId, employeeIds)),
-    });
-    if (existing.length > 0) {
+    const { data: existing } = await supabase
+      .from("task_assignments")
+      .select("employee_id")
+      .eq("task_id", taskId)
+      .in("employee_id", employeeIds);
+    if (existing && existing.length > 0) {
       return { success: false, error: "One or more employees already have this KPI task assigned" };
     }
   }
 
-  // STEP 5: Save assignments
   const dueDateObj = new Date(dueDate);
-  let inserted;
-  try {
-    inserted = await db
-      .insert(schema.taskAssignments)
-      .values(
-        employeesToAssign.map((employee) => ({
-          taskId,
-          employeeId: employee.id,
-          assignedBy,
-          dueDate: dueDateObj,
-          priority,
-          weight,
-          notes: notes || null,
-          allowDuplicate,
-          status: "pending" as const,
-        }))
-      )
-      .returning();
-  } catch (err) {
-    console.error("Assignment insert failed:", err);
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("task_assignments")
+    .insert(
+      employeesToAssign.map((employee) => ({
+        task_id: taskId,
+        employee_id: employee.id,
+        assigned_by: assignedBy,
+        due_date: dueDateObj.toISOString(),
+        priority,
+        weight,
+        notes: notes || null,
+        allow_duplicate: allowDuplicate,
+        status: "pending",
+      }))
+    )
+    .select("*");
+
+  if (insertError || !inserted) {
+    console.error("Assignment insert failed:", JSON.stringify(insertError, null, 2));
     return { success: false, error: "Database transaction failed while saving the assignment" };
   }
 
-  // STEP 6: Send Telegram notifications + log every attempt
   for (const assignment of inserted) {
-    const employee = employeesToAssign.find((e) => e.id === assignment.employeeId)!;
+    const employee = employeesToAssign.find((e) => e.id === assignment.employee_id)!;
     const message = buildAssignmentMessage({
-      employeeFirstName: employee.fullName.split(" ")[0],
+      employeeFirstName: employee.full_name.split(" ")[0],
       taskTitle: task.title,
       priority: assignment.priority,
-      dueDate: assignment.dueDate,
+      dueDate: new Date(assignment.due_date),
       weight: assignment.weight,
-      assignedByName: manager.fullName,
+      assignedByName: manager.full_name,
     });
 
-    const result = employee.telegramChatId
-      ? await sendTelegramMessage(employee.telegramChatId, message)
+    const result = employee.telegram_chat_id
+      ? await sendTelegramMessage(employee.telegram_chat_id, message)
       : { ok: false as const, error: "Employee has no Telegram Chat ID on file" };
 
-    await db.insert(schema.telegramLogs).values({
-      assignmentId: assignment.id,
-      chatId: employee.telegramChatId ?? null,
+    await supabase.from("telegram_logs").insert({
+      assignment_id: assignment.id,
+      chat_id: employee.telegram_chat_id ?? null,
       message,
       status: result.ok ? "sent" : "failed",
       error: result.ok ? null : result.error,
@@ -113,9 +99,9 @@ export async function createAssignments(
 
   return { success: true, data: { assignmentIds: inserted.map((a) => a.id) } };
 }
+
 export async function updateAssignmentStatus(input: unknown): Promise<ActionResult> {
   const parsed = assignmentStatusSchema.safeParse(input);
-
   if (!parsed.success) {
     return {
       success: false,
@@ -123,26 +109,22 @@ export async function updateAssignmentStatus(input: unknown): Promise<ActionResu
       fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
     };
   }
-
   const { assignmentId, status } = parsed.data;
 
-  const existing = await db.query.taskAssignments.findFirst({
-    where: eq(schema.taskAssignments.id, assignmentId),
-  });
+  const { data: existing } = await supabase.from("task_assignments").select("id").eq("id", assignmentId).maybeSingle();
+  if (!existing) return { success: false, error: "Assignment not found" };
 
-  if (!existing) {
-    return { success: false, error: "Assignment not found" };
-  }
+  const { error } = await supabase
+    .from("task_assignments")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", assignmentId);
 
-  try {
-    await db
-      .update(schema.taskAssignments)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(schema.taskAssignments.id, assignmentId));
-
-    return { success: true, data: undefined };
-  } catch (err) {
-    console.error("updateAssignmentStatus failed:", err);
+  if (error) {
+    console.error("updateAssignmentStatus failed:", error);
     return { success: false, error: "Database transaction failed while updating status" };
   }
+
+  revalidatePath("/assignments");
+  revalidatePath("/dashboard");
+  return { success: true, data: undefined };
 }

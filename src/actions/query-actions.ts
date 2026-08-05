@@ -1,14 +1,28 @@
 "use server";
 
-import { asc, desc, eq, and, type SQL } from "drizzle-orm";
-import { db, schema } from "@/db";
+import { supabase } from "@/lib/supabase";
+import type { RawEmployee, RawDepartment, RawTaskAssignment, RawEmployeeAssignment } from "@/lib/supabase-types";
 
 export async function getActiveEmployees() {
-  return db.query.employees.findMany({
-    where: eq(schema.employees.status, "active"),
-    with: { department: true },
-    orderBy: asc(schema.employees.fullName),
-  });
+  const { data, error } = await supabase
+    .from("employees")
+    .select("*, department:departments(id, name)")
+    .eq("status", "active")
+    .order("full_name", { ascending: true });
+
+  if (error) {
+    console.error("getActiveEmployees failed:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row: RawEmployee & { department: RawDepartment | null }) => ({
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    position: row.position,
+    status: row.status,
+    department: row.department,
+  }));
 }
 
 export interface AssignmentFilters {
@@ -19,6 +33,13 @@ export interface AssignmentFilters {
   sortOrder?: "asc" | "desc";
 }
 
+const SORT_COLUMN_MAP: Record<string, string> = {
+  assignedDate: "assigned_date",
+  dueDate: "due_date",
+  priority: "priority",
+  status: "status",
+};
+
 export async function getAssignmentHistory(filters: AssignmentFilters = {}) {
   const {
     search = "",
@@ -28,24 +49,46 @@ export async function getAssignmentHistory(filters: AssignmentFilters = {}) {
     sortOrder = "desc",
   } = filters;
 
-  const conditions: SQL[] = [];
-  if (status !== "all") conditions.push(eq(schema.taskAssignments.status, status));
-  if (priority !== "all") conditions.push(eq(schema.taskAssignments.priority, priority));
+  let query = supabase
+    .from("task_assignments")
+    .select(
+      `*,
+      task:kpi_tasks(id, title),
+      employee:employees!task_assignments_employee_id_employees_id_fk(id, full_name),
+      manager:employees!task_assignments_assigned_by_employees_id_fk(id, full_name),
+      telegram_logs(id, chat_id, status, error, sent_at)`
+    );
 
-  const sortColumn = {
-    assignedDate: schema.taskAssignments.assignedDate,
-    dueDate: schema.taskAssignments.dueDate,
-    priority: schema.taskAssignments.priority,
-    status: schema.taskAssignments.status,
-  }[sortBy];
+  if (status !== "all") query = query.eq("status", status);
+  if (priority !== "all") query = query.eq("priority", priority);
 
-  const orderFn = sortOrder === "asc" ? asc : desc;
+  query = query.order(SORT_COLUMN_MAP[sortBy], { ascending: sortOrder === "asc" });
 
-  const rows = await db.query.taskAssignments.findMany({
-    where: conditions.length > 0 ? and(...conditions) : undefined,
-    with: { task: true, employee: true, manager: true, telegramLogs: true },
-    orderBy: orderFn(sortColumn),
-  });
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("getAssignmentHistory failed:", JSON.stringify(error, null, 2));
+    return [];
+  }
+
+  const rows = (data ?? []).map((row: RawTaskAssignment) => ({
+    id: row.id,
+    dueDate: new Date(row.due_date),
+    priority: row.priority,
+    weight: row.weight,
+    status: row.status,
+    notes: row.notes,
+    task: { title: row.task.title },
+    employee: { fullName: row.employee.full_name },
+    manager: { fullName: row.manager.full_name },
+    telegramLogs: (row.telegram_logs ?? []).map((log) => ({
+      id: log.id,
+      chatId: log.chat_id,
+      status: log.status,
+      error: log.error,
+      sentAt: new Date(log.sent_at),
+    })),
+  }));
 
   if (!search.trim()) return rows;
 
@@ -58,9 +101,36 @@ export async function getAssignmentHistory(filters: AssignmentFilters = {}) {
 }
 
 export async function getEmployeeAssignments(employeeId: string) {
-  return db.query.taskAssignments.findMany({
-    where: eq(schema.taskAssignments.employeeId, employeeId),
-    with: { task: true, manager: true },
-    orderBy: [asc(schema.taskAssignments.dueDate)],
-  });
+  const { data, error } = await supabase
+    .from("task_assignments")
+    .select(`*, task:kpi_tasks(id, title), manager:employees!task_assignments_assigned_by_employees_id_fk(id, full_name)`)
+    .eq("employee_id", employeeId)
+    .order("due_date", { ascending: true });
+
+  if (error) {
+    console.error("getEmployeeAssignments failed:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row: RawEmployeeAssignment) => ({
+    id: row.id,
+    dueDate: new Date(row.due_date),
+    priority: row.priority,
+    weight: row.weight,
+    status: row.status,
+    notes: row.notes,
+    task: { title: row.task.title },
+    manager: { fullName: row.manager.full_name },
+  }));
+}
+
+export async function getDepartments() {
+  const { data, error } = await supabase.from("departments").select("*").order("name", { ascending: true });
+
+  if (error) {
+    console.error("getDepartments failed:", error);
+    return [];
+  }
+
+  return data ?? [];
 }

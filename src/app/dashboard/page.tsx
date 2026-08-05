@@ -4,8 +4,7 @@ import { getEmployeeAssignments } from "@/actions/query-actions";
 import { EmployeeDashboardClient } from "@/components/employee-dashboard-client";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
-import { db, schema } from "@/db";
-import { eq } from "drizzle-orm";
+import { supabase } from "@/lib/supabase";
 
 export default async function EmployeeDashboardPage() {
   const session = await getSession();
@@ -14,9 +13,11 @@ export default async function EmployeeDashboardPage() {
     redirect("/login");
   }
 
-  const employee = await db.query.employees.findFirst({
-    where: eq(schema.employees.id, session.employeeId),
-  });
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("id, full_name")
+    .eq("id", session.employeeId)
+    .maybeSingle();
 
   if (!employee) {
     redirect("/login");
@@ -33,7 +34,7 @@ export default async function EmployeeDashboardPage() {
             My KPI Tasks
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--color-muted)" }}>
-            Viewing as <strong style={{ color: "var(--color-text)" }}>{employee.fullName}</strong> — tasks sorted by nearest due date.
+            Viewing as <strong style={{ color: "var(--color-text)" }}>{employee.full_name}</strong> — tasks sorted by nearest due date.
           </p>
         </div>
         <EmployeeDashboardClient initialRows={rows} />

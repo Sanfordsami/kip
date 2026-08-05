@@ -12,7 +12,7 @@ export default async function AssignmentHistoryPage() {
     <main className="min-h-screen px-4 py-10 sm:px-8">
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
         <AppHeader />
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text)" }}>
               Assignment History
@@ -21,9 +21,17 @@ export default async function AssignmentHistoryPage() {
               Search, filter, and sort every KPI task assignment across the team.
             </p>
           </div>
-          <Link href="/assignments/new">
-            <Button>+ New Assignment</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/employees/new">
+              <Button variant="outline">+ Add Employee</Button>
+            </Link>
+            <Link href="/tasks/new">
+              <Button variant="outline">+ Add KPI Task</Button>
+            </Link>
+            <Link href="/assignments/new">
+              <Button>+ New Assignment</Button>
+            </Link>
+          </div>
         </div>
         <AssignmentHistoryClient initialRows={rows} />
         <AppFooter />

@@ -16,6 +16,7 @@ export const employeeSchema = z.object({
     .optional()
     .or(z.literal("")),
   status: z.enum(["active", "inactive"]).default("active"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export type EmployeeInput = z.infer<typeof employeeSchema>;
