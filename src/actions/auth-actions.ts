@@ -1,9 +1,8 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { loginSchema } from "@/lib/validations";
-import { createSession, destroySession } from "@/lib/session";
 import type { ActionResult } from "./employee-actions";
 
 export async function login(input: unknown): Promise<ActionResult<{ role: "manager" | "employee" }>> {
@@ -17,24 +16,31 @@ export async function login(input: unknown): Promise<ActionResult<{ role: "manag
   }
   const { email, password } = parsed.data;
 
-  const { data: employee } = await supabase.from("employees").select("*").eq("email", email).maybeSingle();
+  const supabaseServer = await createSupabaseServerClient();
+  const { data, error } = await supabaseServer.auth.signInWithPassword({ email, password });
 
-  if (!employee || !employee.password_hash) {
+  if (error || !data.user) {
     return { success: false, error: "Invalid email or password" };
   }
+
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("role, status")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (!employee) {
+    return { success: false, error: "No employee record found for this account" };
+  }
   if (employee.status !== "active") {
+    await supabaseServer.auth.signOut();
     return { success: false, error: "This account is inactive. Contact your manager." };
   }
 
-  const passwordMatches = await bcrypt.compare(password, employee.password_hash);
-  if (!passwordMatches) {
-    return { success: false, error: "Invalid email or password" };
-  }
-
-  await createSession({ employeeId: employee.id, role: employee.role });
   return { success: true, data: { role: employee.role } };
 }
 
 export async function logout(): Promise<void> {
-  await destroySession();
+  const supabaseServer = await createSupabaseServerClient();
+  await supabaseServer.auth.signOut();
 }

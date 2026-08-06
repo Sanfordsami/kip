@@ -1,45 +1,29 @@
-import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
-
-const SESSION_COOKIE = "kpi_session";
-const secret = new TextEncoder().encode(process.env.SESSION_SECRET);
+import { createSupabaseServerClient } from "./supabase-server";
+import { supabase } from "./supabase";
 
 export interface SessionPayload {
   employeeId: string;
   role: "manager" | "employee";
 }
 
-export async function createSession(payload: SessionPayload) {
-  const token = await new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(secret);
-
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-    path: "/",
-  });
-}
-
 export async function getSession(): Promise<SessionPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  const supabaseServer = await createSupabaseServerClient();
+  const { data: { user } } = await supabaseServer.auth.getUser();
 
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    return payload as unknown as SessionPayload;
-  } catch {
-    return null;
-  }
+  if (!user || !user.email) return null;
+
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("id, role")
+    .eq("email", user.email)
+    .maybeSingle();
+
+  if (!employee) return null;
+
+  return { employeeId: employee.id, role: employee.role };
 }
 
 export async function destroySession() {
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
+  const supabaseServer = await createSupabaseServerClient();
+  await supabaseServer.auth.signOut();
 }

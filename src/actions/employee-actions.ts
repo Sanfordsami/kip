@@ -1,8 +1,8 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { employeeSchema } from "@/lib/validations";
 
 export type ActionResult<T = undefined> =
@@ -30,8 +30,6 @@ export async function createEmployee(input: unknown): Promise<ActionResult<{ id:
     return { success: false, error: "An employee with this email already exists" };
   }
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
-
   const { data: row, error } = await supabase
     .from("employees")
     .insert({
@@ -41,7 +39,6 @@ export async function createEmployee(input: unknown): Promise<ActionResult<{ id:
       position: parsed.data.position,
       telegram_chat_id: parsed.data.telegramChatId || null,
       status: parsed.data.status,
-      password_hash: passwordHash,
       role: "employee",
     })
     .select("id")
@@ -50,6 +47,18 @@ export async function createEmployee(input: unknown): Promise<ActionResult<{ id:
   if (error || !row) {
     console.error("createEmployee failed:", error);
     return { success: false, error: "Database transaction failed while creating employee" };
+  }
+
+  const { error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    email_confirm: true,
+    user_metadata: { employeeId: row.id, fullName: parsed.data.fullName },
+  });
+
+  if (authError) {
+    console.error("createEmployee: failed to create auth account:", authError);
+    return { success: false, error: `Employee saved, but login account failed: ${authError.message}` };
   }
 
   revalidatePath("/assignments/new");

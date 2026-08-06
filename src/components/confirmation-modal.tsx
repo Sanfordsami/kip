@@ -11,9 +11,19 @@ interface ConfirmationModalProps {
   confirmLabel?: string;
   onConfirm: () => void;
   isLoading?: boolean;
+  destructive?: boolean;
 }
 
-export function ConfirmationModal({ open, onOpenChange, title, description, confirmLabel = "Confirm", onConfirm, isLoading = false }: ConfirmationModalProps) {
+export function ConfirmationModal({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel = "Confirm",
+  onConfirm,
+  isLoading = false,
+  destructive = false,
+}: ConfirmationModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -23,7 +33,9 @@ export function ConfirmationModal({ open, onOpenChange, title, description, conf
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-          <Button onClick={onConfirm} disabled={isLoading}>{isLoading ? "Please wait…" : confirmLabel}</Button>
+          <Button variant={destructive ? "destructive" : "default"} onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? "Please wait…" : confirmLabel}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
