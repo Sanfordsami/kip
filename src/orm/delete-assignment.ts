@@ -3,14 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import type { ActionResult } from "@/actions/employee-actions";
-import { requireManager } from "@/lib/session";
+import { authManager } from "@/actions/auth-helpers";
 
 export async function deleteAssignment(assignmentId: string): Promise<ActionResult> {
   // ✅ Manager authentication
-  const session = await requireManager();
-  if (!session) {
-    return { success: false, error: "Unauthorized: Manager access required" };
-  }
+  await authManager();
 
   const { data: existing } = await supabase
     .from("task_assignments")

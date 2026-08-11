@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { assignmentStatusSchema } from "@/lib/validations";
 import type { ActionResult } from "@/actions/employee-actions";
-import { requireEmployee } from "@/lib/session";
+import { authEmployee } from "@/actions/auth-helpers";
 
 type UpdateAssignmentStatusInput = {
   assignmentId: string;
@@ -15,10 +15,7 @@ export async function updateAssignmentStatus(
   input: UpdateAssignmentStatusInput
 ): Promise<ActionResult> {
   // ✅ Employee authentication
-  const session = await requireEmployee();
-  if (!session) {
-    return { success: false, error: "Unauthorized: Employee access required" };
-  }
+  const session = await authEmployee();
 
   const parsed = assignmentStatusSchema.safeParse(input);
   if (!parsed.success) {

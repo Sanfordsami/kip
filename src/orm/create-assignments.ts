@@ -5,9 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { assignmentSchema } from "@/lib/validations";
 import { buildAssignmentMessage, sendTelegramMessage } from "@/lib/telegram";
 import type { ActionResult } from "@/actions/employee-actions";
-import { requireManager } from "@/lib/session";
+import { authManager } from "@/actions/auth-helpers";
 
-// Define the input type
 type CreateAssignmentsInput = {
   taskId: string;
   employeeIds: string[];
@@ -20,13 +19,10 @@ type CreateAssignmentsInput = {
 };
 
 export async function createAssignments(
-  input: CreateAssignmentsInput  // ← Changed from unknown to specific type
+  input: CreateAssignmentsInput
 ): Promise<ActionResult<{ assignmentIds: string[] }>> {
   // ✅ Manager authentication
-  const session = await requireManager();
-  if (!session) {
-    return { success: false, error: "Unauthorized: Manager access required" };
-  }
+  await authManager();
 
   const parsed = assignmentSchema.safeParse(input);
   if (!parsed.success) {
