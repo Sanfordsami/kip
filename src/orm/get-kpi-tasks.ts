@@ -1,7 +1,8 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
-import { authManager } from "@/actions/auth-helpers";
+// import { authManager } from "@/actions/auth-helpers";
+import { authManager } from "@/lib/auth";
 
 export async function getKpiTasks() {
   // ✅ Manager authentication

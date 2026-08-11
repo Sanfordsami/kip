@@ -1,23 +1,20 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
-import { kpiTaskSchema } from "@/lib/validations";
+import { kpiTaskSchema, type KpiTaskInput } from "@/lib/validations";
 import type { ActionResult } from "@/actions/employee-actions";
-import { authManager } from "@/actions/auth-helpers";
+// import { authManager } from "@/actions/auth-helpers";
 
-type CreateKpiTaskInput = {
-  title: string;
-  description?: string;
-  weight: number;
-};
+import { authManager } from "@/lib/auth";
 
 export async function createKpiTask(
-  input: CreateKpiTaskInput,
-  createdBy: string
+    
+  input: KpiTaskInput 
 ): Promise<ActionResult<{ id: string }>> {
-  // ✅ Manager authentication
-  await authManager();
 
+  // ✅ Get authenticated manager from session
+  const session = await authManager();
+  
   const parsed = kpiTaskSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -34,7 +31,7 @@ export async function createKpiTask(
       title: parsed.data.title,
       description: parsed.data.description || null,
       weight: parsed.data.weight,
-      created_by: createdBy,
+      created_by: session.employeeId, // ✅ Use session
     })
     .select("id")
     .single();

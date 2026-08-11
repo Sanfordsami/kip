@@ -2,27 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
-import { assignmentSchema } from "@/lib/validations";
+import { assignmentSchema, type AssignmentInput } from "@/lib/validations";
 import { buildAssignmentMessage, sendTelegramMessage } from "@/lib/telegram";
 import type { ActionResult } from "@/actions/employee-actions";
-import { authManager } from "@/actions/auth-helpers";
-
-type CreateAssignmentsInput = {
-  taskId: string;
-  employeeIds: string[];
-  assignedBy: string;
-  dueDate: string;
-  priority: string;
-  weight: number;
-  notes?: string;
-  allowDuplicate: boolean;
-};
+// import { authManager } from "@/actions/auth-helpers";
+import { authManager } from "@/lib/auth";
 
 export async function createAssignments(
-  input: CreateAssignmentsInput
+  input: AssignmentInput  // ✅ Use the Zod type directly
 ): Promise<ActionResult<{ assignmentIds: string[] }>> {
-  // ✅ Manager authentication
-  await authManager();
+  // ✅ Manager authentication - get the session
+  const session = await authManager();
 
   const parsed = assignmentSchema.safeParse(input);
   if (!parsed.success) {
@@ -32,12 +22,17 @@ export async function createAssignments(
       fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
     };
   }
-  const { taskId, employeeIds, assignedBy, dueDate, priority, weight, notes, allowDuplicate } = parsed.data;
+  const { taskId, employeeIds, dueDate, priority, weight, notes, allowDuplicate } = parsed.data;
 
   const { data: task } = await supabase.from("kpi_tasks").select("*").eq("id", taskId).maybeSingle();
   if (!task) return { success: false, error: "KPI task not found" };
 
-  const { data: manager } = await supabase.from("employees").select("*").eq("id", assignedBy).maybeSingle();
+  const { data: manager } = await supabase
+    .from("employees")
+    .select("*")
+    .eq("id", session.employeeId)
+    .maybeSingle();
+    
   if (!manager) return { success: false, error: "Assigning manager could not be identified" };
 
   const { data: employeesToAssign } = await supabase.from("employees").select("*").in("id", employeeIds);
@@ -69,7 +64,7 @@ export async function createAssignments(
       employeesToAssign.map((employee) => ({
         task_id: taskId,
         employee_id: employee.id,
-        assigned_by: assignedBy,
+        assigned_by: session.employeeId,
         due_date: dueDateObj.toISOString(),
         priority,
         weight,

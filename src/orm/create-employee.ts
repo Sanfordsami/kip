@@ -3,22 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { employeeSchema } from "@/lib/validations";
+// import { employeeSchema } from "@/lib/validations";
 import type { ActionResult } from "@/actions/employee-actions";
-import { authManager } from "@/actions/auth-helpers";
+// import { authManager } from "@/actions/auth-helpers";
+import { authManager } from "@/lib/auth";
+import { employeeSchema, type EmployeeInput } from "@/lib/validations";
 
-type CreateEmployeeInput = {
-  fullName: string;
-  email: string;
-  departmentId: string;
-  position: string;
-  telegramChatId?: string;
-  status: "active" | "inactive";
-  password: string;
-};
+
 
 export async function createEmployee(
-  input: CreateEmployeeInput
+  input: EmployeeInput
 ): Promise<ActionResult<{ id: string }>> {
   // ✅ Manager authentication
   await authManager();

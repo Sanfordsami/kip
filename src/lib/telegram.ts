@@ -36,9 +36,6 @@ export function buildAssignmentMessage(data: AssignmentNotificationData): string
   ].join("\n");
 }
 
-
-
-
 export async function sendTelegramMessage(
   chatId: string,
   message: string

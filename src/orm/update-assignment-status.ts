@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { assignmentStatusSchema } from "@/lib/validations";
 import type { ActionResult } from "@/actions/employee-actions";
-import { authEmployee } from "@/actions/auth-helpers";
+
+// import { authEmployee } from "@/actions/auth-helpers";
+import { authEmployee } from "@/lib/auth";
 
 type UpdateAssignmentStatusInput = {
   assignmentId: string;

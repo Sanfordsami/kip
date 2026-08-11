@@ -37,7 +37,7 @@ export type KpiTaskInput = z.infer<typeof kpiTaskSchema>;
 export const assignmentSchema = z.object({
   taskId: z.string().uuid("Select a KPI task"),
   employeeIds: z.array(z.string().uuid()).min(1, "Select at least one employee"),
-  assignedBy: z.string().uuid("Missing manager identity"),
+ 
   dueDate: z
     .string()
     .refine((val) => !Number.isNaN(Date.parse(val)), "Enter a valid due date")
