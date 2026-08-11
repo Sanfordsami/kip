@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import type { RawEmployee, RawDepartment, RawTaskAssignment, RawEmployeeAssignment } from "@/lib/supabase-types";
+import { getSession } from "@/lib/session"; 
 
 export async function getActiveEmployees() {
   const { data, error } = await supabase
@@ -41,6 +42,13 @@ const SORT_COLUMN_MAP: Record<string, string> = {
 };
 
 export async function getAssignmentHistory(filters: AssignmentFilters = {}) {
+
+  const session = await getSession();
+  if (!session || session.role !== "manager") {
+    console.error("Unauthorized: getAssignmentHistory requires manager role");
+    return []; // Or throw an error
+  }
+
   const {
     search = "",
     status = "all",
