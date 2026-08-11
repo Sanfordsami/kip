@@ -4,9 +4,17 @@ import { AssignmentHistoryClient } from "@/components/assignment-history-client"
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { Button } from "@/components/ui/button";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
+
 
 export default async function AssignmentHistoryPage() {
   const rows = await getAssignmentHistory();
+
+  const session = await getSession();
+    if (!session || session.role !== "manager") {
+      redirect("/login");
+    }
 
   return (
     <main className="min-h-screen px-4 py-10 sm:px-8">
