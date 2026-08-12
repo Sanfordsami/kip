@@ -47,7 +47,7 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
     const result = assignmentSchema.safeParse({
       taskId,
       employeeIds,
-      assignedBy: currentManagerId,
+      
       dueDate: dueDate?.toISOString() ?? "",
       priority,
       weight: Number(weight),
@@ -67,8 +67,8 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
   function handleConfirm() {
     startTransition(async () => {
       const result = await createAssignments({
-        taskId, employeeIds, assignedBy: currentManagerId,
-        dueDate: dueDate?.toISOString(), priority, weight: Number(weight), notes, allowDuplicate,
+        taskId: taskId!, employeeIds,
+        dueDate: dueDate?.toISOString() ?? "", priority, weight: Number(weight), notes, allowDuplicate,
       });
 
       if (!result.success) {

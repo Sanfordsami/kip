@@ -31,7 +31,7 @@ export function CreateKpiTaskForm({ managerId }: { managerId: string }) {
     setErrors({});
 
     startTransition(async () => {
-      const result = await createKpiTask(parsed.data, managerId);
+      const result = await createKpiTask(parsed.data);
       if (!result.success) {
         setFormError(result.error);
         return;

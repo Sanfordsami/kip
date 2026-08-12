@@ -9,12 +9,13 @@ import { redirect } from "next/navigation";
 
 
 export default async function AssignmentHistoryPage() {
-  const rows = await getAssignmentHistory();
-
   const session = await getSession();
     if (!session || session.role !== "manager") {
       redirect("/login");
     }
+
+  const rows = await getAssignmentHistory();
+
 
   return (
     <main className="min-h-screen px-4 py-10 sm:px-8">
