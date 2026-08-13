@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getDepartments } from "@/actions/query-actions";
-import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { Button } from "@/components/ui/button";
 import { CreateEmployeeForm } from "@/components/create-employee-form";
@@ -18,7 +17,6 @@ export default async function NewEmployeePage() {
   return (
     <main className="min-h-screen px-4 py-10 sm:px-8">
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
-        <AppHeader />
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight" style={{ color: "var(--color-text)" }}>

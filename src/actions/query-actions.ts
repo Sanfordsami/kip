@@ -142,3 +142,25 @@ export async function getDepartments() {
 
   return data ?? [];
 }
+
+export async function getAllEmployees() {
+  const { data, error } = await supabase
+    .from("employees")
+    .select("id, full_name, email, status, role, telegram_chat_id, department:departments(name)")
+    .order("full_name", { ascending: true });
+
+  if (error) {
+    console.error("getAllEmployees failed:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    status: row.status,
+    role: row.role,
+    telegramChatId: row.telegram_chat_id,
+    department: row.department,
+  }));
+}
