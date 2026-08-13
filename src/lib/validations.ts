@@ -54,7 +54,15 @@ export const assignmentStatusSchema = z.object({
   status: z.enum(["pending", "in_progress", "completed", "rejected"]),
 });
 
+// export const loginSchema = z.object({
+//   email: z.string().trim().email("Enter a valid email address"),
+//   password: z.string().min(1, "Password is required"),
+// });
+// In your validations file
 export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
+
+// Add this export
+export type LoginInput = z.infer<typeof loginSchema>;

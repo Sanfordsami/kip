@@ -2,10 +2,11 @@
 
 import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { loginSchema } from "@/lib/validations";
+import { loginSchema, type LoginInput } from "@/lib/validations";
 import type { ActionResult } from "./employee-actions";
 
-export async function login(input: unknown): Promise<ActionResult<{ role: "manager" | "employee" }>> {
+
+export async function login(input: LoginInput): Promise<ActionResult<{ role: "manager" | "employee" }>> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
     return {
