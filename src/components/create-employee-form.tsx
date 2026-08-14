@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,24 @@ export function CreateEmployeeForm({ departments }: { departments: Department[] 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Position the popup next to the button whenever a new success message appears
+  useEffect(() => {
+    if (successMessage && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPopupPos({ top: rect.top + rect.height / 2, left: rect.right + 12 });
+    }
+  }, [successMessage]);
+
+  // Auto-dismiss after a few seconds
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
   function handleSubmit() {
     setFormError(null);
     setSuccessMessage(null);
@@ -47,7 +65,8 @@ export function CreateEmployeeForm({ departments }: { departments: Department[] 
         setFormError(result.error);
         return;
       }
-      setSuccessMessage(`${fullName} was created successfully. They can log in with the password you set.`);
+      setSuccessMessage(`${fullName} was created successfully
+        `);
       setFullName("");
       setEmail("");
       setDepartmentId(undefined);
@@ -59,14 +78,16 @@ export function CreateEmployeeForm({ departments }: { departments: Department[] 
 
   return (
     <div className="flex flex-col gap-5">
+      <style>{`
+        @keyframes slideInFromRight {
+          from { opacity: 0; transform: translateY(-50%) translateX(16px); }
+          to { opacity: 1; transform: translateY(-50%) translateX(0); }
+        }
+      `}</style>
+
       {formError && (
         <div className="flex items-start gap-2 rounded-md p-3 text-sm" style={{ background: "rgba(248,113,113,0.1)", color: "var(--color-signal-bad)" }}>
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{formError}</span>
-        </div>
-      )}
-      {successMessage && (
-        <div className="flex items-start gap-2 rounded-md p-3 text-sm" style={{ background: "rgba(52,211,153,0.1)", color: "var(--color-signal-good)" }}>
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /><span>{successMessage}</span>
         </div>
       )}
 
@@ -110,9 +131,51 @@ export function CreateEmployeeForm({ departments }: { departments: Department[] 
         {errors.password && <p className="text-xs" style={{ color: "var(--color-signal-bad)" }}>{errors.password[0]}</p>}
       </div>
 
-      <Button onClick={handleSubmit} disabled={isPending} className="mt-2">
+      <Button ref={btnRef} onClick={handleSubmit} disabled={isPending} className="mt-2 self-start">
         {isPending ? "Creating…" : "Create Employee"}
       </Button>
+
+
+
+
+
+     {successMessage && popupPos && (
+  <div
+    key={successMessage}
+    className="fixed z-50 flex items-center gap-2 rounded-md px-4 py-3 text-sm shadow-lg"
+    style={{
+      top: popupPos.top + 10, // Move 10px down
+      left: typeof window !== "undefined" 
+        ? Math.min(popupPos.left + 15, window.innerWidth - 360) // Move 15px right
+        : popupPos.left + 15,
+      transform: "translateY(-50%)",
+      background: "var(--color-surface, #f4f4f5)",
+      color: "var(--color-text, #3f3f46)",
+      border: "1px solid var(--color-line, #e4e4e7)",
+      animation: "slideInFromRight 0.25s ease-out forwards",
+      maxWidth: "350px",
+      minWidth: "280px",
+      padding: "12px 16px",
+      wordBreak: "break-word",
+      lineHeight: "1.5",
+      boxSizing: "border-box",
+      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    }}
+  >
+    <CheckCircle2 className="h-5 w-5 shrink-0 flex-shrink-0" />
+    <span style={{ whiteSpace: "normal", wordWrap: "break-word", flex: 1 }}>
+      {successMessage}
+    </span>
+  </div>
+)}
+
+
+
+
+
+
+
+
     </div>
   );
 }

@@ -23,7 +23,13 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <DayPicker mode="single" selected={value} onSelect={onChange} disabled={{ before: new Date() }} className="p-3" />
+        <DayPicker 
+          mode="single" 
+          selected={value} 
+          onSelect={onChange} 
+          disabled={{ before: new Date() }} 
+          className="p-3 [&_.rdp-day]:text-black [&_.rdp-day_button]:text-black"
+        />
       </PopoverContent>
     </Popover>
   );

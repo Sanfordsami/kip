@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,22 @@ export function CreateKpiTaskForm({ managerId }: { managerId: string }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (successMessage && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPopupPos({ top: rect.top + rect.height / 2, left: rect.right + 12 });
+    }
+  }, [successMessage]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
 
   function handleSubmit() {
     setFormError(null);
@@ -45,14 +61,16 @@ export function CreateKpiTaskForm({ managerId }: { managerId: string }) {
 
   return (
     <div className="flex flex-col gap-5">
+      <style>{`
+        @keyframes slideInFromRight {
+          from { opacity: 0; transform: translateY(-50%) translateX(16px); }
+          to { opacity: 1; transform: translateY(-50%) translateX(0); }
+        }
+      `}</style>
+
       {formError && (
         <div className="flex items-start gap-2 rounded-md p-3 text-sm" style={{ background: "rgba(248,113,113,0.1)", color: "var(--color-signal-bad)" }}>
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{formError}</span>
-        </div>
-      )}
-      {successMessage && (
-        <div className="flex items-start gap-2 rounded-md p-3 text-sm" style={{ background: "rgba(52,211,153,0.1)", color: "var(--color-signal-good)" }}>
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /><span>{successMessage}</span>
         </div>
       )}
 
@@ -73,9 +91,43 @@ export function CreateKpiTaskForm({ managerId }: { managerId: string }) {
         {errors.weight && <p className="text-xs" style={{ color: "var(--color-signal-bad)" }}>{errors.weight[0]}</p>}
       </div>
 
-      <Button onClick={handleSubmit} disabled={isPending} className="mt-2">
+      <Button ref={btnRef} onClick={handleSubmit} disabled={isPending} className="mt-2 self-start">
         {isPending ? "Creating…" : "Create KPI Task"}
       </Button>
+
+      {successMessage && popupPos && (
+  <div
+    key={successMessage}
+    className="fixed z-50 flex items-center gap-2 rounded-md px-3 py-2 text-sm shadow-lg"
+    style={{
+      top: popupPos.top -5,
+      // Position to the left of the button if it would go off-screen
+      left: typeof window !== "undefined" 
+        ? (popupPos.left + 500 > window.innerWidth 
+            ? Math.max(20, popupPos.left - 320) // Position to the left
+            : Math.min(popupPos.left + 15, window.innerWidth - 320)) // Position to the right
+        : popupPos.left + 15,
+      transform: "translateY(-50%)",
+      background: "var(--color-surface, #f4f4f5)",
+      color: "var(--color-text, #3f3f46)",
+      border: "1px solid var(--color-line, #e4e4e7)",
+      animation: "slideInFromRight 0.25s ease-out forwards",
+      maxWidth: "320px",
+      minWidth: "200px",
+      padding: "10px 14px",
+      wordBreak: "break-word",
+      lineHeight: "1.5",
+      boxSizing: "border-box",
+      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    }}
+  >
+    <CheckCircle2 className="h-4 w-4 shrink-0 flex-shrink-0" />
+    <span style={{ whiteSpace: "normal", wordWrap: "break-word", flex: 1 }}>
+      {successMessage}
+    </span>
+  </div>
+)}
+      
     </div>
   );
 }
