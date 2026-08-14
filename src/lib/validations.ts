@@ -66,3 +66,14 @@ export const loginSchema = z.object({
 
 // Add this export
 export type LoginInput = z.infer<typeof loginSchema>;
+
+
+export const campaignSchema = z.object({
+  title: z.string().trim().min(3, "Title must be at least 3 characters").max(200, "Title cannot exceed 200 characters"),
+  body: z.string().trim().min(1, "Body content is required").max(5000, "Body cannot exceed 5000 characters"),
+  targetRoles: z.array(z.string().uuid("Invalid role ID format")).min(1, "At least one target role is required"),
+  sendEmail: z.boolean().default(true),
+  sendTelegram: z.boolean().default(false),
+});
+
+export type CreateCampaignInput = z.infer<typeof campaignSchema>;

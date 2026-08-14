@@ -71,3 +71,80 @@ export async function sendTelegramMessage(
     return { ok: false, error: message };
   }
 }
+interface InlineButton {
+  text: string;
+  callback_data: string;
+}
+
+/**
+ * Sends a message with tappable inline buttons beneath it. Telegram
+ * limits callback_data to 64 bytes, so keep the encoded payload short —
+ * "status:<value>:<uuid>" comfortably fits.
+ */
+export async function sendTelegramMessageWithKeyboard(
+  chatId: string,
+  message: string,
+  buttons: InlineButton[][]
+): Promise<TelegramSendResult> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!token) {
+    return { ok: false, error: "TELEGRAM_BOT_TOKEN is not configured" };
+  }
+  if (!chatId) {
+    return { ok: false, error: "Employee has no Telegram Chat ID on file" };
+  }
+
+  try {
+    const response = await fetch(`${TELEGRAM_API_BASE}/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        reply_markup: { inline_keyboard: buttons },
+      }),
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok || !payload.ok) {
+      return { ok: false, error: payload.description ?? `Telegram API returned HTTP ${response.status}` };
+    }
+
+    return { ok: true, messageId: payload.result.message_id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error contacting Telegram API";
+    return { ok: false, error: message };
+  }
+}
+
+export function buildAssignmentKeyboard(assignmentId: string) {
+  return [
+    [
+      { text: "In Progress", callback_data: `status:in_progress:${assignmentId}` },
+      { text: "Finished", callback_data: `status:completed:${assignmentId}` },
+    ],
+    [{ text: "Reject", callback_data: `status:rejected:${assignmentId}` }],
+  ];
+}
+
+/**
+ * Answers a callback query — required by Telegram so the button's
+ * loading spinner stops, and optionally shows a small toast/alert
+ * to the user confirming what happened.
+ */
+export async function answerCallbackQuery(
+  callbackQueryId: string,
+  text?: string,
+  showAlert = false
+): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return;
+
+  await fetch(`${TELEGRAM_API_BASE}/bot${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: showAlert }),
+  });
+}

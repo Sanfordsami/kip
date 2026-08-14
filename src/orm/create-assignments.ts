@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { assignmentSchema, type AssignmentInput } from "@/lib/validations";
-import { buildAssignmentMessage, sendTelegramMessage } from "@/lib/telegram";
+import { buildAssignmentMessage, sendTelegramMessageWithKeyboard, buildAssignmentKeyboard } from "@/lib/telegram";
 import type { ActionResult } from "@/actions/employee-actions";
 // import { authManager } from "@/actions/auth-helpers";
 import { authManager } from "@/lib/auth";
@@ -92,7 +92,7 @@ export async function createAssignments(
     });
 
     const result = employee.telegram_chat_id
-      ? await sendTelegramMessage(employee.telegram_chat_id, message)
+      ? await sendTelegramMessageWithKeyboard(employee.telegram_chat_id, message, buildAssignmentKeyboard(assignment.id))
       : { ok: false as const, error: "Employee has no Telegram Chat ID on file" };
 
     await supabase.from("telegram_logs").insert({

@@ -7,14 +7,15 @@ import { sendTelegramMessage } from "@/lib/telegram";
 import { sendBrevoEmail } from "@/lib/brevo";
 import { authManager } from "@/lib/auth";
 import type { ActionResult } from "./employee-actions";
-
-interface CreateCampaignInput {
-  title: string;
-  body: string;
-  targetRoles: string[];
-  sendEmail: boolean;
-  sendTelegram: boolean;
-}
+// import { campaignSchema, type CreateCampaignInput } from "@/lib/validations"; 
+import { CreateCampaignInput } from "@/lib/validations"; 
+// interface CreateCampaignInput {
+//   title: string;
+//   body: string;
+//   targetRoles: string[];
+//   sendEmail: boolean;
+//   sendTelegram: boolean;
+// }
 
 export async function createCampaign(input: CreateCampaignInput): Promise<ActionResult<{ id: string }>> {
   const session = await authManager();
@@ -86,7 +87,7 @@ export async function sendCampaign(campaignId: string): Promise<ActionResult> {
         error: result.ok ? null : result.error,
       });
     }
-    
+
     if (campaign.send_telegram) {
       const result = employee.telegram_chat_id
         ? await sendTelegramMessage(employee.telegram_chat_id, `📢 ${campaign.title}\n\n${campaign.body}`)
