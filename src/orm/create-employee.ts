@@ -13,7 +13,7 @@ import { employeeSchema, type EmployeeInput } from "@/lib/validations";
 
 export async function createEmployee(
   input: EmployeeInput
-): Promise<ActionResult<{ id: string }>> {git add .
+): Promise<ActionResult<{ id: string }>> {
   // ✅ Manager authentication
   await authManager();
 
