@@ -164,3 +164,12 @@ export async function getAllEmployees() {
     department: row.department,
   }));
 }
+
+export async function getPendingUsers() {
+  const { data, error } = await supabase.from("users").select("*").order("created_at", { ascending: false });
+  if (error) {
+    console.error("getPendingUsers failed:", error);
+    return [];
+  }
+  return data ?? [];
+}

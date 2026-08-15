@@ -350,3 +350,8 @@ body {
 a, button, [role="button"], input[type="checkbox"], input[type="radio"], select, .cursor-target, label {
   cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2228%22%20height%3D%2228%22%20viewBox%3D%220%200%2028%2028%22%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%235b63e0%22%20stroke-width%3D%222.5%22/%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2214%22%20r%3D%224%22%20fill%3D%22%235b63e0%22/%3E%3C/svg%3E") 14 14, pointer;
 }
+
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateY(-50%) translateX(20px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}

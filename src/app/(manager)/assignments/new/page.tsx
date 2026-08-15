@@ -42,7 +42,7 @@ export default async function NewAssignmentPage() {
             </p>
           </div>
           <Link href="/assignments">
-            <Button variant="outline">View History</Button>
+            <Button variant="outline">Back</Button>
           </Link>
         </div>
         <div className="kpi-card">

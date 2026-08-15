@@ -5,8 +5,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { loginSchema, type LoginInput } from "@/lib/validations";
 import type { ActionResult } from "./employee-actions";
 
+type Role = "manager" | "sales" | "support" | "engineering" | "marketing";
 
-export async function login(input: LoginInput): Promise<ActionResult<{ role: "manager" | "employee" }>> {
+export async function login(input: LoginInput): Promise<ActionResult<{ role: Role }>> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -16,20 +17,16 @@ export async function login(input: LoginInput): Promise<ActionResult<{ role: "ma
     };
   }
   const { email, password } = parsed.data;
-
   const supabaseServer = await createSupabaseServerClient();
   const { data, error } = await supabaseServer.auth.signInWithPassword({ email, password });
-
   if (error || !data.user) {
     return { success: false, error: "Invalid email or password" };
   }
-
   const { data: employee } = await supabase
     .from("employees")
     .select("role, status")
     .eq("email", email)
     .maybeSingle();
-
   if (!employee) {
     return { success: false, error: "No employee record found for this account" };
   }
@@ -37,8 +34,7 @@ export async function login(input: LoginInput): Promise<ActionResult<{ role: "ma
     await supabaseServer.auth.signOut();
     return { success: false, error: "This account is inactive. Contact your manager." };
   }
-
-  return { success: true, data: { role: employee.role } };
+  return { success: true, data: { role: employee.role as Role } };
 }
 
 export async function logout(): Promise<void> {

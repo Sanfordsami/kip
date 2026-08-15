@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,7 +37,10 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   const selectedTask = tasks.find((t) => t.id === taskId);
 
@@ -44,10 +48,14 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
     setFormError(null);
     setSuccessMessage(null);
 
+    const rect = submitButtonRef.current?.getBoundingClientRect();
+    if (rect) {
+      setPopupPos({ top: rect.top, left: rect.right });
+    }
+
     const result = assignmentSchema.safeParse({
       taskId,
       employeeIds,
-      
       dueDate: dueDate?.toISOString() ?? "",
       priority,
       weight: Number(weight),
@@ -78,7 +86,10 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
       }
 
       setConfirmOpen(false);
-      setSuccessMessage(`Assigned to ${employeeIds.length} employee(s). Telegram notifications sent.`);
+      console.log("DEBUG popupPos:", popupPos); setSuccessMessage(`Assigned to ${employeeIds.length} employee(s). Telegram notifications sent.`); console.log("DEBUG successMessage set");
+
+      // Auto-dismiss after a few seconds, like a typical toast.
+      setTimeout(() => setSuccessMessage(null), 4000);
     });
   }
 
@@ -90,11 +101,36 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
           <span>{formError}</span>
         </div>
       )}
-      {successMessage && (
-        <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{successMessage}</span>
-        </div>
+
+      {successMessage && popupPos && typeof document !== "undefined" && createPortal(
+        <div
+          key={successMessage}
+          className="fixed z-50 flex items-center gap-2 rounded-md px-4 py-3 text-sm shadow-lg"
+          style={{
+            top: popupPos.top + 10,
+            left: typeof window !== "undefined"
+              ? Math.min(popupPos.left + 15, window.innerWidth - 360)
+              : popupPos.left + 15,
+            transform: "translateY(-50%)",
+            background: "var(--color-surface, #f4f4f5)",
+            color: "var(--color-text, #3f3f46)",
+            border: "1px solid var(--color-line, #e4e4e7)",
+            animation: "slideInFromRight 0.25s ease-out forwards",
+            maxWidth: "350px",
+            minWidth: "280px",
+            padding: "12px 16px",
+            wordBreak: "break-word",
+            lineHeight: "1.5",
+            boxSizing: "border-box",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          }}
+        >
+          <CheckCircle2 className="h-5 w-5 shrink-0 flex-shrink-0" style={{ color: "var(--color-signal-good)" }} />
+          <span style={{ whiteSpace: "normal", wordWrap: "break-word", flex: 1 }}>
+            {successMessage}
+          </span>
+        </div>,
+        document.body
       )}
 
       <div className="flex flex-col gap-2">
@@ -145,12 +181,12 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
         Allow duplicate assignment of this KPI task to the same employee
       </label>
 
-     <div className="flex justify-end">
-        <Button onClick={validateAndOpenConfirm} disabled={isPending}>
+      <div className="flex justify-end">
+        <Button ref={submitButtonRef} onClick={validateAndOpenConfirm} disabled={isPending}>
           Submit Assignment
         </Button>
       </div>
-      
+
       <ConfirmationModal
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

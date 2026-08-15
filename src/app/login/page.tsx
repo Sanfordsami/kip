@@ -27,7 +27,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Role-based redirect — exactly what you asked for
       if (result.data.role === "manager") {
         router.push("/assignments");
       } else {
