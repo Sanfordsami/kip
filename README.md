@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+# KPI Management System — Addis Reality
+
+An internal KPI task assignment and tracking system built for Addis Reality (AR Solutions PLC). Managers assign KPI tasks to employees, who are notified instantly via Telegram (with tappable status buttons) and/or email, and can track and update their progress from a personal dashboard.
+
+## Features
+
+- **KPI Task Assignment** — managers assign tasks to one or more employees, with priority, due date, weight, and notes
+- **Telegram Bot Notifications** — instant delivery with inline buttons (`In Progress`, `Finished`, `Reject`) that update status directly from Telegram
+- **Email + Telegram Campaigns** — send broadcast messages to groups of employees filtered by role, via Brevo (email) and/or Telegram
+- **Assignment History** — searchable, filterable, sortable log of every assignment, with delivery status per notification
+- **Employee Dashboard** — each employee sees only their own assigned tasks and can update status
+- **Manager Admin Panel** — sidebar-driven admin area for managing employees, KPI tasks, and campaigns
+- **Authentication** — Supabase Auth–backed login, with route protection via Next.js middleware based on employee role
+- **Role-based access** — `manager`, `sales`, `support`, `engineering`, `marketing`
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **Database:** Supabase (PostgreSQL)
+- **Database client:** `@supabase/supabase-js`
+- **Authentication:** Supabase Auth (`@supabase/ssr` for cookie-based sessions)
+- **Validation:** Zod
+- **Notifications:** Telegram Bot API, Brevo (transactional email)
+- **UI primitives:** Radix UI + custom components
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up environment variables
+
+Create a `.env.local` file in the project root:
+
+```env
+# Supabase — database connection (from Project Settings → Database)
+DATABASE_URL="postgresql://postgres.xxxx:PASSWORD@aws-x-region.pooler.supabase.com:6543/postgres"
+DIRECT_URL="postgresql://postgres.xxxx:PASSWORD@aws-x-region.pooler.supabase.com:5432/postgres"
+
+# Supabase — API access (from Project Settings → API)
+NEXT_PUBLIC_SUPABASE_URL="https://xxxx.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-public-key"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-secret-key"
+
+# Telegram Bot (from @BotFather)
+TELEGRAM_BOT_TOKEN="your-bot-token"
+TELEGRAM_WEBHOOK_SECRET="a-random-secret-string"
+
+# Brevo (transactional email)
+BREVO_API_KEY="your-brevo-api-key"
+BREVO_SENDER_EMAIL="your-verified-sender@example.com"
+BREVO_SENDER_NAME="Addis Reality KPI"
+```
+
+⚠️ Never commit `.env.local` — it's already listed in `.gitignore`.
+
+### 3. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000) (or the next available port if 3000 is in use).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Set up the Telegram webhook (local development)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Telegram needs a public URL to send button-tap events to. For local testing, use [ngrok](https://ngrok.com):
 
-## Learn More
+```bash
+ngrok http 3001   # match whatever port your dev server is running on
+```
 
-To learn more about Next.js, take a look at the following resources:
+Then register the webhook with the ngrok URL it gives you:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://YOUR_NGROK_URL/api/telegram/webhook", "secret_token": "<TELEGRAM_WEBHOOK_SECRET>"}'
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

@@ -145,12 +145,12 @@ export function AssignmentForm({ employees, tasks, currentManagerId }: Assignmen
         Allow duplicate assignment of this KPI task to the same employee
       </label>
 
-      <div className="flex justify-end">
+     <div className="flex justify-end">
         <Button onClick={validateAndOpenConfirm} disabled={isPending}>
-          {isPending ? "Assigning…" : "Submit Assignment"}
+          Submit Assignment
         </Button>
       </div>
-
+      
       <ConfirmationModal
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
