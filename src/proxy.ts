@@ -14,7 +14,7 @@ function isPublicRoute(path: string): boolean {
   return PUBLIC_ROUTES.some((route) => path === route || path.startsWith(route + "/"));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   if (path === "/") {
