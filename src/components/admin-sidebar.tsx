@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: "Assignment History", href: "/assignments", icon: FileText },
   { label: "New Assignment", href: "/assignments/new", icon: PlusCircle },
   { label: "Employees", href: "/admin/employees", icon: Users },
+  { label: "Pending Sign Ups", href: "/admin/pending", icon: UserPlus },
   { label: "Add Employee", href: "/employees/new", icon: UserPlus },
   { label: "KPI Tasks", href: "/admin/tasks", icon: ClipboardList },
   { label: "Add KPI Task", href: "/tasks/new", icon: FilePlus },

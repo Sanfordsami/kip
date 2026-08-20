@@ -70,6 +70,6 @@ export async function requireManager(): Promise<SessionPayload | null> {
 
 export async function requireEmployee(): Promise<SessionPayload | null> {
   const session = await getSession();
-  if (!session || session.role !== "employee") return null;
+  if (!session) return null;
   return session;
 }

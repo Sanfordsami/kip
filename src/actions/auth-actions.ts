@@ -41,3 +41,46 @@ export async function logout(): Promise<void> {
   const supabaseServer = await createSupabaseServerClient();
   await supabaseServer.auth.signOut();
 }
+
+interface SignUpInput {
+  fullName: string;
+  email: string;
+  password: string;
+}
+
+export async function signUp(input: SignUpInput): Promise<ActionResult> {
+  if (!input.fullName.trim() || !input.email.trim() || input.password.length < 6) {
+    return { success: false, error: "Please fill in all fields (password must be at least 6 characters)" };
+  }
+
+  const { data: existingUser } = await supabase.from("users").select("id").eq("email", input.email).maybeSingle();
+  const { data: existingEmployee } = await supabase.from("employees").select("id").eq("email", input.email).maybeSingle();
+
+  if (existingUser || existingEmployee) {
+    return { success: false, error: "An account with this email already exists" };
+  }
+
+  const { supabaseAdmin } = await import("@/lib/supabase-admin");
+  const { error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: input.email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: { fullName: input.fullName },
+  });
+
+  if (authError) {
+    console.error("signUp: failed to create auth account:", authError);
+    return { success: false, error: `Sign up failed: ${authError.message}` };
+  }
+
+  const { error: dbError } = await supabase
+    .from("users")
+    .insert({ full_name: input.fullName, email: input.email });
+
+  if (dbError) {
+    console.error("signUp: failed to create users row:", JSON.stringify(dbError, null, 2));
+    return { success: false, error: `Account created, but registration record failed: ${dbError.message}` };
+  }
+
+  return { success: true, data: undefined };
+}

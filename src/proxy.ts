@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PUBLIC_ROUTES = ["/login", "/api/telegram/webhook"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/api/telegram/webhook"];
 
 const MANAGER_ROUTES = ["/assignments", "/employees/new", "/tasks/new", "/admin"];
 
